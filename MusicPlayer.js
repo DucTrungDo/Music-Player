@@ -1,6 +1,3 @@
-// Một số bài hát có thể bị lỗi do liên kết bị hỏng. Vui lòng thay thế liên kết khác để có thể phát
-// Some songs may be faulty due to broken links. Please replace another link so that it can be played
-
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
@@ -18,15 +15,22 @@ const nextBtn = $('.btn-next');
 const randomBtn = $('.btn-random');
 const repeatBtn = $('.btn-repeat');
 const playlist = $('.playlist');
+const volumeBar = $('.volume-bar');
+const muteIcon = $('.icon-mute');
+const unmuteIcon = $('.icon-unmute');
+const timeRange = $('#timeRange');
 
 const app = {
   currentIndex: 0,
   isPlaying: false,
   isRandom: false,
   isRepeat: false,
+  currentVolume: 1,
+  savedVolume: 1,
+
   config: {},
   // (1/2) Uncomment the line below to use localStorage
-  // config: JSON.parse(localStorage.getItem(PlAYER_STORAGE_KEY)) || {},
+  config: JSON.parse(localStorage.getItem(PlAYER_STORAGE_KEY)) || {},
   songs: [
     {
       name: 'Nevada',
@@ -98,12 +102,14 @@ const app = {
   setConfig: function (key, value) {
     this.config[key] = value;
     // (2/2) Uncomment the line below to use localStorage
-    // localStorage.setItem(PlAYER_STORAGE_KEY, JSON.stringify(this.config));
+    localStorage.setItem(PlAYER_STORAGE_KEY, JSON.stringify(this.config));
   },
   render: function () {
     const htmls = this.songs.map((song, index) => {
       return `
-        <div class="song ${index === this.currentIndex ? 'active' : ''}" data-index="${index}">
+        <div class="song ${
+          index === this.currentIndex ? 'active' : ''
+        }" data-index="${index}">
             <div class="thumb"
                 style="background-image: url('${song.image}')">
             </div>
@@ -130,8 +136,24 @@ const app = {
     const _this = this;
     const cdWidth = cd.offsetWidth;
 
+    let isTouchingVolume = false;
+    volumeBar.addEventListener(
+      'touchstart',
+      (e) => {
+        isTouchingVolume = true;
+      },
+      { passive: false }
+    );
+
+    document.addEventListener('touchmove', (e) => {
+      if (isTouchingVolume) {
+        e.preventDefault(); // Ngăn cuộn trang khi di chuyển ngón tay
+      }
+    });
+    document.addEventListener('touchend', (e) => {
+      isTouchingVolume = false;
+    });
     // Xử lý CD quay / dừng
-    // Handle CD spins / stops
     const cdThumbAnimate = cdThumb.animate([{ transform: 'rotate(360deg)' }], {
       duration: 10000, // 10 seconds
       iterations: Infinity,
@@ -139,7 +161,6 @@ const app = {
     cdThumbAnimate.pause();
 
     // Xử lý phóng to / thu nhỏ CD
-    // Handles CD enlargement / reduction
     document.onscroll = function () {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const newCdWidth = cdWidth - scrollTop;
@@ -149,7 +170,6 @@ const app = {
     };
 
     // Xử lý khi click play
-    // Handle when click play
     playBtn.onclick = function () {
       if (_this.isPlaying) {
         audio.pause();
@@ -159,15 +179,13 @@ const app = {
     };
 
     // Khi song được play
-    // When the song is played
     audio.onplay = function () {
       _this.isPlaying = true;
       player.classList.add('playing');
       cdThumbAnimate.play();
     };
 
-    // Khi song bị pause
-    // When the song is pause
+    // Khi song được pause
     audio.onpause = function () {
       _this.isPlaying = false;
       player.classList.remove('playing');
@@ -175,25 +193,29 @@ const app = {
     };
 
     // Khi tiến độ bài hát thay đổi
-    // When the song progress changes
     audio.ontimeupdate = function () {
       if (audio.duration) {
         const progressPercent = Math.floor(
           (audio.currentTime / audio.duration) * 100
         );
         progress.value = progressPercent;
+        timeRange.textContent =
+          formatTime(audio.currentTime) + '/ ' + formatTime(audio.duration);
       }
     };
+    function formatTime(time) {
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60);
+      return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+    }
 
     // Xử lý khi tua song
-    // Handling when seek
-    progress.onchange = function (e) {
-      const seekTime = (audio.duration / 100) * e.target.value;
+    progress.oninput = function (e) {
+      const seekTime = (e.target.value / 100) * audio.duration;
       audio.currentTime = seekTime;
     };
 
     // Khi next song
-    // When next song
     nextBtn.onclick = function () {
       if (_this.isRandom) {
         _this.playRandomSong();
@@ -206,7 +228,6 @@ const app = {
     };
 
     // Khi prev song
-    // When prev song
     prevBtn.onclick = function () {
       if (_this.isRandom) {
         _this.playRandomSong();
@@ -219,7 +240,6 @@ const app = {
     };
 
     // Xử lý bật / tắt random song
-    // Handling on / off random song
     randomBtn.onclick = function (e) {
       _this.isRandom = !_this.isRandom;
       _this.setConfig('isRandom', _this.isRandom);
@@ -227,7 +247,6 @@ const app = {
     };
 
     // Xử lý lặp lại một song
-    // Single-parallel repeat processing
     repeatBtn.onclick = function (e) {
       _this.isRepeat = !_this.isRepeat;
       _this.setConfig('isRepeat', _this.isRepeat);
@@ -235,7 +254,6 @@ const app = {
     };
 
     // Xử lý next song khi audio ended
-    // Handle next song when audio ended
     audio.onended = function () {
       if (_this.isRepeat) {
         audio.play();
@@ -245,13 +263,11 @@ const app = {
     };
 
     // Lắng nghe hành vi click vào playlist
-    // Listen to playlist clicks
     playlist.onclick = function (e) {
       const songNode = e.target.closest('.song:not(.active)');
 
       if (songNode || e.target.closest('.option')) {
         // Xử lý khi click vào song
-        // Handle when clicking on the song
         if (songNode) {
           _this.currentIndex = Number(songNode.dataset.index);
           _this.loadCurrentSong();
@@ -260,19 +276,62 @@ const app = {
         }
 
         // Xử lý khi click vào song option
-        // Handle when clicking on the song option
         if (e.target.closest('.option')) {
         }
       }
+    };
+
+    //Xử lý khi click vào nút volume
+
+    if (_this.currentVolume > 0) {
+      volumeBar.value = _this.currentVolume;
+      audio.volume = _this.currentVolume;
+      $('.icon-unmute').style.visibility = 'visible';
+      $('.icon-mute').style.visibility = 'hidden';
+    } else {
+      volumeBar.value = 0;
+      audio.volume = 0;
+      $('.icon-unmute').style.visibility = 'hidden';
+      $('.icon-mute').style.visibility = 'visible';
+    }
+    audio.onvolumechange = () => {
+      volumeBar.value = audio.volume;
+      if (audio.volume === 0) {
+        muteIcon.style.visibility = 'visible';
+        unmuteIcon.style.visibility = 'hidden';
+      } else {
+        muteIcon.style.visibility = 'hidden';
+        unmuteIcon.style.visibility = 'visible';
+      }
+    };
+
+    volumeBar.oninput = (e) => {
+      this.setConfig('currentVolume', e.target.value);
+      audio.volume = volumeBar.value;
+      volumeBar.setAttribute(
+        'title',
+        'Âm lượng ' + volumeBar.value * 100 + '%'
+      );
+    };
+
+    unmuteIcon.onclick = (e) => {
+      this.setConfig('savedVolume', audio.volume);
+      audio.volume = 0;
+      this.setConfig('currentVolume', audio.volume);
+    };
+    muteIcon.onclick = (e) => {
+      audio.volume = this.config.savedVolume;
+      this.setConfig('currentVolume', audio.volume);
     };
   },
   scrollToActiveSong: function () {
     setTimeout(() => {
       $('.song.active').scrollIntoView({
         behavior: 'smooth',
-        block: 'nearest',
+        block: 'end',
+        inline: 'nearest',
       });
-    }, 300);
+    }, 100);
   },
   loadCurrentSong: function () {
     heading.textContent = this.currentSong.name;
@@ -306,30 +365,22 @@ const app = {
     this.currentIndex = newIndex;
     this.loadCurrentSong();
   },
+
   start: function () {
     // Gán cấu hình từ config vào ứng dụng
-    // Assign configuration from config to application
     this.loadConfig();
 
     // Định nghĩa các thuộc tính cho object
-    // Defines properties for the object
     this.defineProperties();
 
     // Lắng nghe / xử lý các sự kiện (DOM events)
-    // Listening / handling events (DOM events)
     this.handleEvents();
 
     // Tải thông tin bài hát đầu tiên vào UI khi chạy ứng dụng
-    // Load the first song information into the UI when running the app
     this.loadCurrentSong();
 
     // Render playlist
     this.render();
-
-    // Hiển thị trạng thái ban đầu của button repeat & random
-    // Display the initial state of the repeat & random button
-    randomBtn.classList.toggle('active', this.isRandom);
-    repeatBtn.classList.toggle('active', this.isRepeat);
   },
 };
 
