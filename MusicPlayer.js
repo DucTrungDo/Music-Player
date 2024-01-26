@@ -178,14 +178,14 @@ const app = {
       }
     };
 
-    // Khi song được play
+    // Khi bài hát được play
     audio.onplay = function () {
       _this.isPlaying = true;
       player.classList.add('playing');
       cdThumbAnimate.play();
     };
 
-    // Khi song được pause
+    // Khi bài hát được pause
     audio.onpause = function () {
       _this.isPlaying = false;
       player.classList.remove('playing');
@@ -209,13 +209,13 @@ const app = {
       return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
     }
 
-    // Xử lý khi tua song
+    // Xử lý khi tua bài hát
     progress.oninput = function (e) {
       const seekTime = (e.target.value / 100) * audio.duration;
       audio.currentTime = seekTime;
     };
 
-    // Khi next song
+    // Khi next bài hát
     nextBtn.onclick = function () {
       if (_this.isRandom) {
         _this.playRandomSong();
@@ -227,7 +227,7 @@ const app = {
       _this.scrollToActiveSong();
     };
 
-    // Khi prev song
+    // Khi prev bài hát
     prevBtn.onclick = function () {
       if (_this.isRandom) {
         _this.playRandomSong();
@@ -239,21 +239,21 @@ const app = {
       _this.scrollToActiveSong();
     };
 
-    // Xử lý bật / tắt random song
+    // Xử lý bật / tắt random bài hát
     randomBtn.onclick = function (e) {
       _this.isRandom = !_this.isRandom;
       _this.setConfig('isRandom', _this.isRandom);
       randomBtn.classList.toggle('active', _this.isRandom);
     };
 
-    // Xử lý lặp lại một song
+    // Xử lý lặp lại một bài hát
     repeatBtn.onclick = function (e) {
       _this.isRepeat = !_this.isRepeat;
       _this.setConfig('isRepeat', _this.isRepeat);
       repeatBtn.classList.toggle('active', _this.isRepeat);
     };
 
-    // Xử lý next song khi audio ended
+    // Xử lý next bài hát khi audio ended
     audio.onended = function () {
       if (_this.isRepeat) {
         audio.play();
@@ -275,7 +275,7 @@ const app = {
           audio.play();
         }
 
-        // Xử lý khi click vào song option
+        // Xử lý khi click vào bài hát option
         if (e.target.closest('.option')) {
         }
       }
